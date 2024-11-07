@@ -3,10 +3,6 @@ resource "azurerm_resource_group" "rg" {
   location = "canadacentral"
 }
 
-resource "random_id" "rand" {
-  byte_length = 2
-}
-
 resource "azuread_application" "app" {
   display_name = var.app_name
   owners       = [data.azuread_client_config.current.object_id]
@@ -26,6 +22,7 @@ resource "azuread_service_principal_password" "secret" {
   service_principal_id = azuread_service_principal.spn.id
 }
 
+# Role assignment ( limited to resource group only )
 resource "azurerm_role_definition" "contributor_role" {
   role_definition_id = "b24988ac-6180-42a0-ab88-20f7382dd24c"
   name               = "${var.rg_name}-contributor"
@@ -41,8 +38,36 @@ resource "azurerm_role_definition" "contributor_role" {
   ]
 }
 
-resource "azurerm_role_assignment" "example" {
+resource "azurerm_role_assignment" "role" {
   name               = "Contributor"
+  scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
+  role_definition_id = azurerm_role_definition.contributor_role.role_definition_resource_id
+  principal_id       = data.azuread_service_principal.spn.object_id
+}
+
+# Storage blob data contributor role assignment and definition for new SPN
+resource "azurerm_role_definition" "storage_contributor" {
+  role_definition_id = "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+  name               = "${var.rg_name}-blob-contributor"
+  scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
+
+  permissions {
+    data_actions = [
+                    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read",
+                    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write",
+                    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/move/action",
+                    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/add/action",
+    ]
+    not_data_actions = []
+  }
+
+  assignable_scopes = [
+    "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}",
+  ]
+}
+
+resource "azurerm_role_assignment" "example" {
+  name               = "Storage Blob Data Contributor"
   scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
   role_definition_id = azurerm_role_definition.contributor_role.role_definition_resource_id
   principal_id       = data.azuread_service_principal.spn.object_id
