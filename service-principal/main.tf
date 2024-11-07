@@ -39,7 +39,7 @@ resource "azurerm_role_definition" "contributor_role" {
 }
 
 resource "azurerm_role_assignment" "role" {
-  name               = "Contributor"
+  name               = azurerm_role_definition.contributor_role.role_definition_id
   scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
   role_definition_id = azurerm_role_definition.contributor_role.role_definition_resource_id
   principal_id       = data.azuread_service_principal.spn.object_id
@@ -53,10 +53,10 @@ resource "azurerm_role_definition" "storage_contributor" {
 
   permissions {
     data_actions = [
-                    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read",
-                    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write",
-                    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/move/action",
-                    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/add/action",
+      "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read",
+      "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write",
+      "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/move/action",
+      "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/add/action",
     ]
     not_data_actions = []
   }
@@ -67,7 +67,7 @@ resource "azurerm_role_definition" "storage_contributor" {
 }
 
 resource "azurerm_role_assignment" "example" {
-  name               = "Storage Blob Data Contributor"
+  name               = azurerm_role_definition.storage_contributor.role_definition_id
   scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
   role_definition_id = azurerm_role_definition.contributor_role.role_definition_resource_id
   principal_id       = data.azuread_service_principal.spn.object_id
