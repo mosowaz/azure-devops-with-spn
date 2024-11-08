@@ -12,3 +12,4 @@ data "azurerm_key_vault" "vault" {
   name                = "my-principal-keyvault"
   resource_group_name = "terraform-backend-RG"
 }
+

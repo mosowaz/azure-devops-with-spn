@@ -23,54 +23,23 @@ resource "azuread_service_principal_password" "secret" {
 }
 
 # Role assignment ( limited to resource group only )
-resource "azurerm_role_definition" "contributor_role" {
-  role_definition_id = "b24988ac-6180-42a0-ab88-20f7382dd24c"
-  name               = "${var.rg_name}-contributor"
-  scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
-
-  permissions {
-    actions     = ["*"]
-    not_actions = []
-  }
-
-  assignable_scopes = [
-    "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}",
-  ]
-}
-
 resource "azurerm_role_assignment" "role" {
-  name               = azurerm_role_definition.contributor_role.role_definition_id
-  scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
-  role_definition_id = azurerm_role_definition.contributor_role.role_definition_resource_id
+  scope              = data.azurerm_subscription.primary.id
   principal_id       = data.azuread_service_principal.spn.object_id
-}
-
-# Storage blob data contributor role assignment and definition for new SPN
-resource "azurerm_role_definition" "storage_contributor" {
-  role_definition_id = "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
-  name               = "${var.rg_name}-blob-contributor"
-  scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
-
-  permissions {
-    data_actions = [
-      "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read",
-      "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write",
-      "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/move/action",
-      "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/add/action",
-    ]
-    not_data_actions = []
-  }
-
-  assignable_scopes = [
-    "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}",
+  role_definition_name = "Contributor"
+  depends_on = [ 
+        azuread_service_principal.spn,  azuread_application.app
   ]
 }
 
+# Storage blob data contributor role assignment for new SPN
 resource "azurerm_role_assignment" "example" {
-  name               = azurerm_role_definition.storage_contributor.role_definition_id
-  scope              = "${data.azurerm_subscription.primary.id}/resourceGroups/${var.rg_name}"
-  role_definition_id = azurerm_role_definition.contributor_role.role_definition_resource_id
+  scope              = data.azurerm_subscription.primary.id
   principal_id       = data.azuread_service_principal.spn.object_id
+  role_definition_name = "Storage Blob Data Contributor"
+  depends_on = [ 
+        azuread_service_principal.spn,  azuread_application.app
+  ]  
 }
 
 # Key vault access policy for new service principal
@@ -109,5 +78,5 @@ resource "azurerm_key_vault_secret" "secrets" {
   value        = each.value.value
   key_vault_id = data.azurerm_key_vault.vault.id
 
-  depends_on = [azurerm_key_vault_access_policy.access, ]
+  depends_on = [azurerm_key_vault_access_policy.access, data.azurerm_key_vault.vault]
 }
